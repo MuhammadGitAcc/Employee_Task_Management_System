@@ -1,0 +1,61 @@
+import { hash } from "bcryptjs";
+import { prisma } from "../lib/prisma.js";
+import type {
+  UserCreateInput,
+  UserUpdateInput,
+} from "../schemas/user.schemas.js";
+import { HttpError } from "../utils/httpError.js";
+import { hasErrorCode } from "../utils/prismaErrors.js";
+
+const userSelect = {
+  id: true,
+  name: true,
+  email: true,
+  role: true,
+  jobTitle: true,
+  department: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
+const EMAIL_TAKEN = "Another employee already uses this email.";
+
+const emailTakenError = () =>
+  new HttpError(409, EMAIL_TAKEN, { email: EMAIL_TAKEN });
+
+export const listUsers = () =>
+  prisma.user.findMany({ select: userSelect, orderBy: { name: "asc" } });
+
+export const createUser = async ({ password, ...data }: UserCreateInput) => {
+  const passwordHash = await hash(password, 10);
+
+  try {
+    return await prisma.user.create({
+      data: { ...data, passwordHash },
+      select: userSelect,
+    });
+  } catch (error) {
+    if (hasErrorCode(error, "P2002")) {
+      throw emailTakenError();
+    }
+    throw error;
+  }
+};
+
+export const updateUser = async (id: string, data: UserUpdateInput) => {
+  try {
+    return await prisma.user.update({
+      where: { id },
+      data,
+      select: userSelect,
+    });
+  } catch (error) {
+    if (hasErrorCode(error, "P2025")) {
+      throw new HttpError(404, "Employee not found");
+    }
+    if (hasErrorCode(error, "P2002")) {
+      throw emailTakenError();
+    }
+    throw error;
+  }
+};
