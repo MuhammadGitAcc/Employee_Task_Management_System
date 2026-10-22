@@ -1,0 +1,103 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  Admin
+  Manager
+  Employee
+}
+
+enum TaskStatus {
+  ToDo       @map("To Do")
+  InProgress @map("In Progress")
+  Done
+}
+
+enum TaskPriority {
+  Low
+  Medium
+  High
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(Employee)
+  jobTitle     String   @default("")
+  department   String   @default("")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  assignedTasks Task[]
+  comments      TaskComment[]
+  activities    TaskActivity[]
+  chatMessages  ChatMessage[]
+}
+
+model Task {
+  id          String       @id @default(uuid())
+  title       String
+  description String       @default("")
+  status      TaskStatus   @default(ToDo)
+  priority    TaskPriority @default(Medium)
+  dueDate     DateTime     @db.Date
+  assigneeId  String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  assignee User?          @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+  comments TaskComment[]
+  activity TaskActivity[]
+
+  @@index([assigneeId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model TaskComment {
+  id        String   @id @default(uuid())
+  taskId    String
+  authorId  String
+  text      String
+  createdAt DateTime @default(now())
+
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id])
+
+  @@index([taskId])
+}
+
+model TaskActivity {
+  id        String   @id @default(uuid())
+  taskId    String
+  actorId   String
+  message   String
+  createdAt DateTime @default(now())
+
+  task  Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  actor User @relation(fields: [actorId], references: [id])
+
+  @@index([taskId])
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  channelId String
+  senderId  String
+  text      String
+  createdAt DateTime @default(now())
+
+  sender User @relation(fields: [senderId], references: [id])
+
+  @@index([channelId, createdAt])
+}
