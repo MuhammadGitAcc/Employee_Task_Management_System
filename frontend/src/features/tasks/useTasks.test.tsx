@@ -45,6 +45,7 @@ const loggedIn: AuthContextValue = {
     role: "Admin",
   },
   login: async () => {},
+  register: async () => {},
   logout: () => {},
   can: () => true,
 };

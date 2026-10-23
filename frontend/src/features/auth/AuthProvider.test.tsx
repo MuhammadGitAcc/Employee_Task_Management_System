@@ -19,12 +19,19 @@ const mockFetch = (status: number, body: unknown) =>
   );
 
 const Probe = () => {
-  const { user, login, logout } = useAuth();
+  const { user, login, register, logout } = useAuth();
   return (
     <div>
       <p>{user ? `${user.name} (${user.role})` : "signed out"}</p>
       <button onClick={() => void login("a@b.co", "pw").catch(() => {})}>
         login
+      </button>
+      <button
+        onClick={() =>
+          void register("Eli Employee", "a@b.co", "pw12345678").catch(() => {})
+        }
+      >
+        register
       </button>
       <button onClick={logout}>logout</button>
     </div>
@@ -66,6 +73,30 @@ describe("AuthProvider", () => {
     renderProvider();
 
     await userEvent.click(screen.getByText("login"));
+
+    expect(screen.getByText("signed out")).toBeInTheDocument();
+    expect(getToken()).toBeNull();
+  });
+
+  it("registers through the API, signs in and saves the token", async () => {
+    mockFetch(201, { token: "tok", user: employee });
+    renderProvider();
+
+    await userEvent.click(screen.getByText("register"));
+
+    expect(
+      await screen.findByText("Eli Employee (Employee)")
+    ).toBeInTheDocument();
+    expect(getToken()).toBe("tok");
+  });
+
+  it("stays signed out when the sign-up is rejected", async () => {
+    mockFetch(409, {
+      error: { message: "Another employee already uses this email." },
+    });
+    renderProvider();
+
+    await userEvent.click(screen.getByText("register"));
 
     expect(screen.getByText("signed out")).toBeInTheDocument();
     expect(getToken()).toBeNull();

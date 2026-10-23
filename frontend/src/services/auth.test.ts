@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { setToken } from "./api";
-import { fetchCurrentUser, login } from "./auth";
+import { fetchCurrentUser, login, register } from "./auth";
 
 const user = {
   id: "user-1",
@@ -45,6 +45,40 @@ describe("login", () => {
       status: 401,
       message: "Invalid email or password",
     });
+  });
+});
+
+describe("register", () => {
+  it("posts the trimmed name and email with the password", async () => {
+    const fetchMock = mockFetch(201, { token: "abc", user });
+
+    const result = await register(
+      "  Eli Employee ",
+      "  employee@example.com ",
+      "secret1234"
+    );
+
+    expect(result).toEqual({ token: "abc", user });
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [
+      string,
+      RequestInit,
+    ];
+    expect(url).toMatch(/\/auth\/register$/);
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body as string)).toEqual({
+      name: "Eli Employee",
+      email: "employee@example.com",
+      password: "secret1234",
+    });
+  });
+
+  it("rejects with the field details when the email is used", async () => {
+    const message = "Another employee already uses this email.";
+    mockFetch(409, { error: { message, details: { email: message } } });
+
+    await expect(
+      register("Eli Employee", "employee@example.com", "secret1234")
+    ).rejects.toMatchObject({ status: 409, details: { email: message } });
   });
 });
 

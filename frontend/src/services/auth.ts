@@ -26,6 +26,17 @@ export const login = (email: string, password: string): Promise<LoginResult> =>
     { auth: false }
   );
 
+export const register = (
+  name: string,
+  email: string,
+  password: string
+): Promise<LoginResult> =>
+  api.post<LoginResult>(
+    "/auth/register",
+    { name: name.trim(), email: email.trim(), password },
+    { auth: false }
+  );
+
 export const fetchCurrentUser = async (): Promise<AuthUser> => {
   const { user } = await api.get<{ user: AuthUser }>("/auth/me");
   return user;
