@@ -36,5 +36,11 @@ export const userCreateSchema = z.object({
 
 export const userUpdateSchema = userCreateSchema.omit({ password: true });
 
+export const registerSchema = userCreateSchema.pick({
+  name: true,
+  email: true,
+  password: true,
+});
+
 export type UserCreateInput = z.infer<typeof userCreateSchema>;
 export type UserUpdateInput = z.infer<typeof userUpdateSchema>;
