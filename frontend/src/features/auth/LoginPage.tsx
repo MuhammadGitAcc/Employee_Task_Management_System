@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Navigate, useLocation } from "react-router-dom";
+import { Link, Navigate, useLocation } from "react-router-dom";
 import PageHeader from "~/components/layout/PageHeader";
 import Button from "~/components/ui/Button";
 import Card from "~/components/ui/Card";
@@ -88,6 +88,15 @@ const LoginPage: React.FC = () => {
               {submitting ? "Logging in..." : "Log in"}
             </Button>
           </form>
+          <p className="mt-4 text-sm text-gray-600 dark:text-gray-300">
+            No account yet?{" "}
+            <Link
+              to="/signup"
+              className="font-medium text-primary-600 hover:underline dark:text-primary-400"
+            >
+              Sign up
+            </Link>
+          </p>
         </Card>
         {import.meta.env.DEV && (
           <div className="mt-4 rounded-lg border border-dashed border-gray-300 bg-white p-4 text-sm text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">

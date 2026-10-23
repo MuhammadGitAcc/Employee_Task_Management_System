@@ -3,6 +3,7 @@ import { createBrowserRouter } from "react-router-dom";
 import AppLayout from "~/components/layout/AppLayout";
 import LoginPage from "~/features/auth/LoginPage";
 import ProtectedRoute from "~/features/auth/ProtectedRoute";
+import SignUpPage from "~/features/auth/SignUpPage";
 import NotFound from "./NotFound";
 import RouteError from "./RouteError";
 
@@ -14,6 +15,7 @@ const Profile = lazy(() => import("~/features/profile/Profile"));
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginPage />, errorElement: <RouteError /> },
+  { path: "/signup", element: <SignUpPage />, errorElement: <RouteError /> },
   {
     element: (
       <ProtectedRoute>

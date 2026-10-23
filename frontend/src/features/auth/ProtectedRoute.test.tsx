@@ -8,6 +8,7 @@ import ProtectedRoute from "./ProtectedRoute";
 const loggedOut: AuthContextValue = {
   user: null,
   login: async () => {},
+  register: async () => {},
   logout: () => {},
   can: () => false,
 };
