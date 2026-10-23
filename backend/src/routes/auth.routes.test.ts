@@ -52,6 +52,73 @@ describe("auth routes", () => {
     expect(res.body.user).toEqual(employeeUser);
   });
 
+  it("register creates an Employee account and signs the user in", async () => {
+    prismaMock.user.create.mockResolvedValue({
+      ...employeeUser,
+      jobTitle: "Team member",
+      department: "",
+    });
+
+    const res = await api().post("/api/auth/register").send({
+      name: "Eli Employee",
+      email: " Employee@Example.com ",
+      password: PASSWORD,
+      role: "Admin",
+    });
+
+    expect(res.status).toBe(201);
+    expect(typeof res.body.token).toBe("string");
+    expect(res.body.user).toEqual(employeeUser);
+    expect(prismaMock.user.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          name: "Eli Employee",
+          email: "employee@example.com",
+          role: "Employee",
+          jobTitle: "Team member",
+          department: "",
+          passwordHash: expect.stringMatching(/^\$2[aby]\$/),
+        }),
+      }),
+    );
+  });
+
+  it("register with invalid input returns 400 with details", async () => {
+    const res = await api()
+      .post("/api/auth/register")
+      .send({ name: "", email: "not-an-email", password: "short" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.details.name).toBe("Name is required.");
+    expect(res.body.error.details.email).toBe("Enter a valid email address.");
+    expect(res.body.error.details.password).toBe(
+      "Password must be at least 8 characters.",
+    );
+    expect(prismaMock.user.create).not.toHaveBeenCalled();
+  });
+
+  it("register without a body returns 400", async () => {
+    const res = await api().post("/api/auth/register").send({});
+
+    expect(res.status).toBe(400);
+    expect(prismaMock.user.create).not.toHaveBeenCalled();
+  });
+
+  it("register with a used email returns 409", async () => {
+    prismaMock.user.create.mockRejectedValue({ code: "P2002" });
+
+    const res = await api().post("/api/auth/register").send({
+      name: "Eli Employee",
+      email: employeeUser.email,
+      password: PASSWORD,
+    });
+
+    expect(res.status).toBe(409);
+    expect(res.body.error.details.email).toBe(
+      "Another employee already uses this email.",
+    );
+  });
+
   it("GET /api/auth/me returns the signed-in user", async () => {
     mockUsers(employeeUser);
 
