@@ -112,3 +112,19 @@ export const deactivateUser = async (id: string, actorId: string) => {
     throw error;
   }
 };
+
+export const resetPassword = async (id: string, newPassword: string) => {
+  const passwordHash = await hash(newPassword, 10);
+
+  try {
+    await prisma.user.update({
+      where: { id, active: true },
+      data: { passwordHash },
+    });
+  } catch (error) {
+    if (hasErrorCode(error, "P2025")) {
+      throw new HttpError(404, "Employee not found");
+    }
+    throw error;
+  }
+};

@@ -179,4 +179,76 @@ describe("users routes", () => {
     expect(res.status).toBe(404);
     expect(res.body.error.message).toBe("Employee not found");
   });
+
+  it("PUT /api/users/:id/password as Employee returns 403", async () => {
+    mockUsers(employeeUser);
+
+    const res = await api()
+      .put("/api/users/user-other/password")
+      .set("Authorization", await bearer(employeeUser))
+      .send({ newPassword: "newpassword123" });
+
+    expect(res.status).toBe(403);
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+
+  it("PUT /api/users/:id/password as Admin saves a hashed password", async () => {
+    mockUsers(adminUser);
+    prismaMock.user.update.mockResolvedValue({});
+
+    const res = await api()
+      .put("/api/users/user-other/password")
+      .set("Authorization", await bearer(adminUser))
+      .send({ newPassword: "newpassword123" });
+
+    expect(res.status).toBe(204);
+
+    const { where, data } = prismaMock.user.update.mock.calls[0][0];
+    expect(where).toEqual({ id: "user-other", active: true });
+    expect(data.passwordHash).not.toBe("newpassword123");
+    expect(data).not.toHaveProperty("newPassword");
+  });
+
+  it("PUT /api/users/:id/password with a short password returns 400 with details", async () => {
+    mockUsers(adminUser);
+
+    const res = await api()
+      .put("/api/users/user-other/password")
+      .set("Authorization", await bearer(adminUser))
+      .send({ newPassword: "short" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.details.newPassword).toBe(
+      "New password must be at least 8 characters.",
+    );
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+
+  it("PUT /api/users/:id/password without a password returns 400", async () => {
+    mockUsers(adminUser);
+
+    const res = await api()
+      .put("/api/users/user-other/password")
+      .set("Authorization", await bearer(adminUser))
+      .send({});
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.details.newPassword).toBe(
+      "New password is required.",
+    );
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+
+  it("PUT /api/users/:id/password for an unknown or inactive employee returns 404", async () => {
+    mockUsers(adminUser);
+    prismaMock.user.update.mockRejectedValue({ code: "P2025" });
+
+    const res = await api()
+      .put("/api/users/missing/password")
+      .set("Authorization", await bearer(adminUser))
+      .send({ newPassword: "newpassword123" });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error.message).toBe("Employee not found");
+  });
 });
