@@ -14,3 +14,8 @@ usersRouter.delete(
   requireRole("Admin"),
   usersController.deactivateUser,
 );
+usersRouter.put(
+  "/:id/password",
+  requireRole("Admin"),
+  usersController.resetUserPassword,
+);

@@ -1,6 +1,10 @@
 import type { Request, Response } from "express";
 import { publish } from "../realtime/chat.hub.js";
-import { userCreateSchema, userUpdateSchema } from "../schemas/user.schemas.js";
+import {
+  resetPasswordSchema,
+  userCreateSchema,
+  userUpdateSchema,
+} from "../schemas/user.schemas.js";
 import * as usersService from "../services/users.service.js";
 import { getIdParam, getRequestUser } from "../utils/request.js";
 import { parseOrThrow } from "../utils/validate.js";
@@ -34,5 +38,14 @@ export const deactivateUser = async (
 ): Promise<void> => {
   await usersService.deactivateUser(getIdParam(req), getRequestUser(req).id);
   publish({ type: "tasks-changed" });
+  res.status(204).end();
+};
+
+export const resetUserPassword = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  const input = parseOrThrow(resetPasswordSchema, req.body);
+  await usersService.resetPassword(getIdParam(req), input.newPassword);
   res.status(204).end();
 };

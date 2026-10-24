@@ -52,5 +52,9 @@ export const changePasswordSchema = z.object({
     .max(72, "New password must be 72 characters or fewer."),
 });
 
+export const resetPasswordSchema = changePasswordSchema.pick({
+  newPassword: true,
+});
+
 export type UserCreateInput = z.infer<typeof userCreateSchema>;
 export type UserUpdateInput = z.infer<typeof userUpdateSchema>;
