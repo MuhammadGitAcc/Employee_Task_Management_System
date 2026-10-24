@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { setToken } from "./api";
-import { fetchCurrentUser, login, register } from "./auth";
+import { changePassword, fetchCurrentUser, login, register } from "./auth";
 
 const user = {
   id: "user-1",
@@ -79,6 +79,40 @@ describe("register", () => {
     await expect(
       register("Eli Employee", "employee@example.com", "secret1234")
     ).rejects.toMatchObject({ status: 409, details: { email: message } });
+  });
+});
+
+describe("changePassword", () => {
+  it("puts the current and the new password", async () => {
+    const fetchMock = vi.fn(async () => new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await changePassword("secret1234", "newsecret5678");
+
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [
+      string,
+      RequestInit,
+    ];
+    expect(url).toMatch(/\/auth\/password$/);
+    expect(init.method).toBe("PUT");
+    expect(JSON.parse(init.body as string)).toEqual({
+      currentPassword: "secret1234",
+      newPassword: "newsecret5678",
+    });
+  });
+
+  it("rejects with the field details when the current password is wrong", async () => {
+    const message = "Current password is incorrect.";
+    mockFetch(400, {
+      error: { message, details: { currentPassword: message } },
+    });
+
+    await expect(
+      changePassword("wrong-password", "newsecret5678")
+    ).rejects.toMatchObject({
+      status: 400,
+      details: { currentPassword: message },
+    });
   });
 });
 
