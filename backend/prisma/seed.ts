@@ -4,6 +4,7 @@ import {
   TaskPriority,
   TaskStatus,
 } from "../src/generated/prisma/enums.js";
+import { env } from "../src/config/env.js";
 import { prisma } from "../src/lib/prisma.js";
 
 const dayFromToday = (offset: number): Date => {
@@ -41,6 +42,12 @@ const DEMO_USERS = [
 ];
 
 async function main() {
+  if (env.isProduction) {
+    throw new Error(
+      "Refusing to seed: NODE_ENV is production. The seed is for development only.",
+    );
+  }
+
   const idByEmail = new Map<string, string>();
 
   for (const { password, ...data } of DEMO_USERS) {
