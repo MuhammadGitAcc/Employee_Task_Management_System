@@ -9,3 +9,8 @@ usersRouter.use(authenticate);
 usersRouter.get("/", usersController.listUsers);
 usersRouter.post("/", requireRole("Admin"), usersController.createUser);
 usersRouter.put("/:id", requireRole("Admin"), usersController.updateUser);
+usersRouter.delete(
+  "/:id",
+  requireRole("Admin"),
+  usersController.deactivateUser,
+);

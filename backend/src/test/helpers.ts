@@ -29,10 +29,14 @@ export const api = () => request(createApp());
 
 export const mockUsers = (...users: AuthUser[]): void => {
   prismaMock.user.findUnique.mockImplementation(
-    async ({ where }: { where: { id?: string; email?: string } }) =>
-      users.find(
-        (user) => user.id === where.id || user.email === where.email,
-      ) ?? null,
+    async ({ where }: { where: { id?: string; email?: string } }) => {
+      const user = users.find(
+        (candidate) =>
+          candidate.id === where.id || candidate.email === where.email,
+      );
+
+      return user ? { ...user, active: true } : null;
+    },
   );
 };
 

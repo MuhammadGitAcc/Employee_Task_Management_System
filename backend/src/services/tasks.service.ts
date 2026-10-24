@@ -30,10 +30,10 @@ const findTaskOrThrow = async (id: string) => {
 const findAssigneeOrThrow = async (id: string) => {
   const assignee = await prisma.user.findUnique({
     where: { id },
-    select: { id: true, name: true },
+    select: { id: true, name: true, active: true },
   });
 
-  if (!assignee) {
+  if (!assignee || !assignee.active) {
     throw new HttpError(400, "Validation failed", {
       assigneeId: "Selected employee does not exist.",
     });

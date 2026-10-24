@@ -52,10 +52,10 @@ const isKnownUser = async (token: string): Promise<boolean> => {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true },
+    select: { active: true },
   });
 
-  return Boolean(user);
+  return Boolean(user?.active);
 };
 
 export const attachSocketServer = (server: Server) => {

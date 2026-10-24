@@ -12,6 +12,7 @@ export const prismaMock = {
     findMany: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
     delete: vi.fn(),
   },
   taskComment: {

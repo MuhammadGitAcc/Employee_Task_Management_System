@@ -37,9 +37,25 @@ describe("auth routes", () => {
     expect(res.status).toBe(401);
   });
 
+  it("login for a deactivated employee returns 401", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      ...employeeUser,
+      active: false,
+      passwordHash: hashSync(PASSWORD, 4),
+    });
+
+    const res = await api()
+      .post("/api/auth/login")
+      .send({ email: employeeUser.email, password: PASSWORD });
+
+    expect(res.status).toBe(401);
+    expect(res.body.error.message).toBe("Invalid email or password");
+  });
+
   it("login with valid credentials returns a token and the user", async () => {
     prismaMock.user.findUnique.mockResolvedValue({
       ...employeeUser,
+      active: true,
       passwordHash: hashSync(PASSWORD, 4),
     });
 
@@ -121,7 +137,7 @@ describe("auth routes", () => {
 
   it("change password saves the new password", async () => {
     prismaMock.user.findUnique
-      .mockResolvedValueOnce(employeeUser)
+      .mockResolvedValueOnce({ ...employeeUser, active: true })
       .mockResolvedValueOnce({ passwordHash: hashSync(PASSWORD, 4) });
     prismaMock.user.update.mockResolvedValue({});
 
@@ -139,7 +155,7 @@ describe("auth routes", () => {
 
   it("change password with a wrong current password returns 400", async () => {
     prismaMock.user.findUnique
-      .mockResolvedValueOnce(employeeUser)
+      .mockResolvedValueOnce({ ...employeeUser, active: true })
       .mockResolvedValueOnce({ passwordHash: hashSync(PASSWORD, 4) });
 
     const res = await api()
@@ -232,5 +248,19 @@ describe("auth routes", () => {
       .set("Authorization", await bearer(employeeUser));
 
     expect(res.status).toBe(401);
+  });
+
+  it("GET /api/auth/me for a deactivated employee returns 401", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      ...employeeUser,
+      active: false,
+    });
+
+    const res = await api()
+      .get("/api/auth/me")
+      .set("Authorization", await bearer(employeeUser));
+
+    expect(res.status).toBe(401);
+    expect(res.body.error.message).toBe("Invalid or expired token");
   });
 });
