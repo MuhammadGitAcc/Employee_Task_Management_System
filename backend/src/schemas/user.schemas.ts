@@ -42,5 +42,15 @@ export const registerSchema = userCreateSchema.pick({
   password: true,
 });
 
+export const changePasswordSchema = z.object({
+  currentPassword: z
+    .string("Current password is required.")
+    .min(1, "Current password is required."),
+  newPassword: z
+    .string("New password is required.")
+    .min(8, "New password must be at least 8 characters.")
+    .max(72, "New password must be 72 characters or fewer."),
+});
+
 export type UserCreateInput = z.infer<typeof userCreateSchema>;
 export type UserUpdateInput = z.infer<typeof userUpdateSchema>;

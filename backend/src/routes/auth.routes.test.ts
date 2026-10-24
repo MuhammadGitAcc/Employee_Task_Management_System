@@ -119,6 +119,85 @@ describe("auth routes", () => {
     );
   });
 
+  it("change password saves the new password", async () => {
+    prismaMock.user.findUnique
+      .mockResolvedValueOnce(employeeUser)
+      .mockResolvedValueOnce({ passwordHash: hashSync(PASSWORD, 4) });
+    prismaMock.user.update.mockResolvedValue({});
+
+    const res = await api()
+      .put("/api/auth/password")
+      .set("Authorization", await bearer(employeeUser))
+      .send({ currentPassword: PASSWORD, newPassword: "new-secret-456" });
+
+    expect(res.status).toBe(204);
+    expect(prismaMock.user.update).toHaveBeenCalledWith({
+      where: { id: employeeUser.id },
+      data: { passwordHash: expect.stringMatching(/^\$2[aby]\$/) },
+    });
+  });
+
+  it("change password with a wrong current password returns 400", async () => {
+    prismaMock.user.findUnique
+      .mockResolvedValueOnce(employeeUser)
+      .mockResolvedValueOnce({ passwordHash: hashSync(PASSWORD, 4) });
+
+    const res = await api()
+      .put("/api/auth/password")
+      .set("Authorization", await bearer(employeeUser))
+      .send({
+        currentPassword: "wrong-password",
+        newPassword: "new-secret-456",
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.details.currentPassword).toBe(
+      "Current password is incorrect.",
+    );
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+
+  it("change password with invalid input returns 400 with details", async () => {
+    mockUsers(employeeUser);
+
+    const res = await api()
+      .put("/api/auth/password")
+      .set("Authorization", await bearer(employeeUser))
+      .send({ currentPassword: "", newPassword: "short" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.details.currentPassword).toBe(
+      "Current password is required.",
+    );
+    expect(res.body.error.details.newPassword).toBe(
+      "New password must be at least 8 characters.",
+    );
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+
+  it("change password rejects a new password equal to the current one", async () => {
+    mockUsers(employeeUser);
+
+    const res = await api()
+      .put("/api/auth/password")
+      .set("Authorization", await bearer(employeeUser))
+      .send({ currentPassword: PASSWORD, newPassword: PASSWORD });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.details.newPassword).toBe(
+      "New password must be different from the current password.",
+    );
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+
+  it("change password without a token returns 401", async () => {
+    const res = await api()
+      .put("/api/auth/password")
+      .send({ currentPassword: PASSWORD, newPassword: "new-secret-456" });
+
+    expect(res.status).toBe(401);
+  });
+
   it("GET /api/auth/me returns the signed-in user", async () => {
     mockUsers(employeeUser);
 
