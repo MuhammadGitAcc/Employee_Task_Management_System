@@ -5,7 +5,6 @@ import Button from "~/components/ui/Button";
 import Card from "~/components/ui/Card";
 import Input from "~/components/ui/Input";
 import { ApiError } from "~/services/api";
-import { DEMO_LOGINS } from "~/services/auth";
 import { env } from "~/utils/env";
 import { useAuth } from "./useAuth";
 
@@ -98,20 +97,6 @@ const LoginPage: React.FC = () => {
             </Link>
           </p>
         </Card>
-        {import.meta.env.DEV && (
-          <div className="mt-4 rounded-lg border border-dashed border-gray-300 bg-white p-4 text-sm text-gray-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300">
-            <p className="font-medium text-gray-700 dark:text-gray-200">
-              Demo accounts (development only)
-            </p>
-            <ul className="mt-2 space-y-1">
-              {DEMO_LOGINS.map((account) => (
-                <li key={account.email}>
-                  {account.role}: {account.email} / {account.password}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
       </div>
     </main>
   );
