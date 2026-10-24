@@ -37,6 +37,12 @@ export const register = (
     { auth: false }
   );
 
+export const changePassword = (
+  currentPassword: string,
+  newPassword: string
+): Promise<void> =>
+  api.put<void>("/auth/password", { currentPassword, newPassword });
+
 export const fetchCurrentUser = async (): Promise<AuthUser> => {
   const { user } = await api.get<{ user: AuthUser }>("/auth/me");
   return user;

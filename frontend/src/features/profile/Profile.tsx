@@ -5,6 +5,7 @@ import Card from "~/components/ui/Card";
 import { useAuth } from "~/features/auth/useAuth";
 import { isAssignedTo } from "~/features/tasks/task.assignee";
 import { useTasks } from "~/features/tasks/useTasks";
+import ChangePasswordForm from "./ChangePasswordForm";
 
 const Profile: React.FC = () => {
   const { user } = useAuth();
@@ -45,6 +46,7 @@ const Profile: React.FC = () => {
           </div>
         </div>
       </Card>
+      <ChangePasswordForm />
     </PageContainer>
   );
 };
