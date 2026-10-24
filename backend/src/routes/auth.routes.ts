@@ -3,11 +3,15 @@ import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
 import { authenticate } from "../middleware/auth.middleware.js";
 import { authRateLimiter } from "../middleware/rateLimit.middleware.js";
-import { registerSchema } from "../schemas/user.schemas.js";
-import { createUser } from "../services/users.service.js";
+import {
+  changePasswordSchema,
+  registerSchema,
+} from "../schemas/user.schemas.js";
+import { changePassword, createUser } from "../services/users.service.js";
 import type { AuthUser } from "../types/auth.types.js";
 import { HttpError } from "../utils/httpError.js";
 import { signToken } from "../utils/jwt.js";
+import { getRequestUser } from "../utils/request.js";
 import { parseOrThrow } from "../utils/validate.js";
 
 export const authRouter = Router();
@@ -68,6 +72,23 @@ authRouter.post("/register", authRateLimiter, async (req, res) => {
   };
 
   res.status(201).json({ token: await signToken(authUser), user: authUser });
+});
+
+authRouter.put("/password", authenticate, authRateLimiter, async (req, res) => {
+  const { currentPassword, newPassword } = parseOrThrow(
+    changePasswordSchema,
+    req.body,
+  );
+
+  if (newPassword === currentPassword) {
+    throw new HttpError(400, "Validation failed", {
+      newPassword: "New password must be different from the current password.",
+    });
+  }
+
+  await changePassword(getRequestUser(req).id, currentPassword, newPassword);
+
+  res.status(204).send();
 });
 
 authRouter.get("/me", authenticate, (req, res) => {

@@ -1,4 +1,4 @@
-import { hash } from "bcryptjs";
+import { compare, hash } from "bcryptjs";
 import { prisma } from "../lib/prisma.js";
 import type {
   UserCreateInput,
@@ -40,6 +40,31 @@ export const createUser = async ({ password, ...data }: UserCreateInput) => {
     }
     throw error;
   }
+};
+
+export const changePassword = async (
+  id: string,
+  currentPassword: string,
+  newPassword: string,
+) => {
+  const user = await prisma.user.findUnique({
+    where: { id },
+    select: { passwordHash: true },
+  });
+  const matches = user
+    ? await compare(currentPassword, user.passwordHash)
+    : false;
+
+  if (!user || !matches) {
+    throw new HttpError(400, "Current password is incorrect.", {
+      currentPassword: "Current password is incorrect.",
+    });
+  }
+
+  await prisma.user.update({
+    where: { id },
+    data: { passwordHash: await hash(newPassword, 10) },
+  });
 };
 
 export const updateUser = async (id: string, data: UserUpdateInput) => {
