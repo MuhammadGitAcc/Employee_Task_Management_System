@@ -24,7 +24,11 @@ const emailTakenError = () =>
   new HttpError(409, EMAIL_TAKEN, { email: EMAIL_TAKEN });
 
 export const listUsers = () =>
-  prisma.user.findMany({ select: userSelect, orderBy: { name: "asc" } });
+  prisma.user.findMany({
+    where: { active: true },
+    select: userSelect,
+    orderBy: { name: "asc" },
+  });
 
 export const createUser = async ({ password, ...data }: UserCreateInput) => {
   const passwordHash = await hash(password, 10);
@@ -70,7 +74,7 @@ export const changePassword = async (
 export const updateUser = async (id: string, data: UserUpdateInput) => {
   try {
     return await prisma.user.update({
-      where: { id },
+      where: { id, active: true },
       data,
       select: userSelect,
     });
@@ -80,6 +84,30 @@ export const updateUser = async (id: string, data: UserUpdateInput) => {
     }
     if (hasErrorCode(error, "P2002")) {
       throw emailTakenError();
+    }
+    throw error;
+  }
+};
+
+export const deactivateUser = async (id: string, actorId: string) => {
+  if (id === actorId) {
+    throw new HttpError(400, "You cannot remove your own account.");
+  }
+
+  try {
+    await prisma.$transaction([
+      prisma.task.updateMany({
+        where: { assigneeId: id },
+        data: { assigneeId: null },
+      }),
+      prisma.user.update({
+        where: { id, active: true },
+        data: { active: false },
+      }),
+    ]);
+  } catch (error) {
+    if (hasErrorCode(error, "P2025")) {
+      throw new HttpError(404, "Employee not found");
     }
     throw error;
   }

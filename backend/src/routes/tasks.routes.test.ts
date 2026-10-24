@@ -105,6 +105,26 @@ describe("tasks routes", () => {
     );
   });
 
+  it("POST /api/tasks with a deactivated assignee returns 400", async () => {
+    prismaMock.user.findUnique.mockImplementation(
+      async ({ where }: { where: { id: string } }) =>
+        where.id === managerUser.id
+          ? { ...managerUser, active: true }
+          : { ...employeeUser, active: false },
+    );
+
+    const res = await api()
+      .post("/api/tasks")
+      .set("Authorization", await bearer(managerUser))
+      .send(validTaskBody);
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.details.assigneeId).toBe(
+      "Selected employee does not exist.",
+    );
+    expect(prismaMock.task.create).not.toHaveBeenCalled();
+  });
+
   it("PUT /api/tasks/:id as Manager records one activity entry per change", async () => {
     mockUsers(managerUser, employeeUser);
     prismaMock.task.findUnique.mockResolvedValue(taskRow());

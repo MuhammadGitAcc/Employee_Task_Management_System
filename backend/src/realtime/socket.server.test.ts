@@ -3,6 +3,7 @@ import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
 import WebSocket from "ws";
 import { adminUser, mockUsers } from "../test/helpers.js";
+import { prismaMock } from "../test/prismaMock.js";
 import type { ApiChatMessage } from "../types/chat.types.js";
 import { signToken } from "../utils/jwt.js";
 import { publish } from "./chat.hub.js";
@@ -124,6 +125,22 @@ describe("socket server", () => {
 
   it("closes the socket when the user no longer exists", async () => {
     mockUsers();
+    const socket = connect(await start());
+    await opened(socket);
+
+    const code = closedWith(socket);
+    socket.send(
+      JSON.stringify({ type: "auth", token: await signToken(adminUser) }),
+    );
+
+    await expect(code).resolves.toBe(CLOSE_UNAUTHORIZED);
+  });
+
+  it("closes the socket when the user is deactivated", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      ...adminUser,
+      active: false,
+    });
     const socket = connect(await start());
     await opened(socket);
 

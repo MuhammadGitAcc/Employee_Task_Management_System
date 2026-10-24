@@ -110,4 +110,73 @@ describe("users routes", () => {
     expect(res.status).toBe(404);
     expect(res.body.error.message).toBe("Employee not found");
   });
+
+  it("GET /api/users lists only active employees", async () => {
+    mockUsers(employeeUser);
+    prismaMock.user.findMany.mockResolvedValue([]);
+
+    await api()
+      .get("/api/users")
+      .set("Authorization", await bearer(employeeUser));
+
+    expect(prismaMock.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { active: true } }),
+    );
+  });
+
+  it("DELETE /api/users/:id as Employee returns 403", async () => {
+    mockUsers(employeeUser);
+
+    const res = await api()
+      .delete("/api/users/user-other")
+      .set("Authorization", await bearer(employeeUser));
+
+    expect(res.status).toBe(403);
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+
+  it("DELETE /api/users/:id as Admin deactivates the employee and unassigns their tasks", async () => {
+    mockUsers(adminUser);
+    prismaMock.task.updateMany.mockResolvedValue({ count: 2 });
+    prismaMock.user.update.mockResolvedValue({});
+
+    const res = await api()
+      .delete("/api/users/user-other")
+      .set("Authorization", await bearer(adminUser));
+
+    expect(res.status).toBe(204);
+    expect(prismaMock.task.updateMany).toHaveBeenCalledWith({
+      where: { assigneeId: "user-other" },
+      data: { assigneeId: null },
+    });
+    expect(prismaMock.user.update).toHaveBeenCalledWith({
+      where: { id: "user-other", active: true },
+      data: { active: false },
+    });
+  });
+
+  it("DELETE /api/users/:id refuses to remove your own account", async () => {
+    mockUsers(adminUser);
+
+    const res = await api()
+      .delete(`/api/users/${adminUser.id}`)
+      .set("Authorization", await bearer(adminUser));
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.message).toBe("You cannot remove your own account.");
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+
+  it("DELETE /api/users/:id for an unknown employee returns 404", async () => {
+    mockUsers(adminUser);
+    prismaMock.task.updateMany.mockResolvedValue({ count: 0 });
+    prismaMock.user.update.mockRejectedValue({ code: "P2025" });
+
+    const res = await api()
+      .delete("/api/users/missing")
+      .set("Authorization", await bearer(adminUser));
+
+    expect(res.status).toBe(404);
+    expect(res.body.error.message).toBe("Employee not found");
+  });
 });

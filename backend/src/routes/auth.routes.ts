@@ -38,7 +38,7 @@ authRouter.post("/login", authRateLimiter, async (req, res) => {
     user?.passwordHash ?? DUMMY_HASH,
   );
 
-  if (!user || !passwordMatches) {
+  if (!user || !user.active || !passwordMatches) {
     throw new HttpError(401, "Invalid email or password");
   }
 
