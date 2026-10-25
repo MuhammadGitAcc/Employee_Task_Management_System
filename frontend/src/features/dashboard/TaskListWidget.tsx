@@ -1,6 +1,7 @@
 import React from "react";
 import Badge from "~/components/ui/Badge";
 import Card from "~/components/ui/Card";
+import { getAssigneeLabel } from "~/features/tasks/task.assignee";
 import { getDueState } from "~/features/tasks/task.due";
 import type { Task } from "~/features/tasks/task.types";
 
@@ -39,7 +40,7 @@ const TaskListWidget: React.FC<TaskListWidgetProps> = ({
                   </p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     Due {task.dueDate} · {task.status}
-                    {showAssignee && ` · ${task.assignedTo}`}
+                    {showAssignee && ` · ${getAssigneeLabel(task)}`}
                   </p>
                 </div>
                 {dueState === "overdue" && <Badge tone="red">Overdue</Badge>}

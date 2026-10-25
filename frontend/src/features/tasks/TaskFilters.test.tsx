@@ -1,16 +1,25 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { UNASSIGNED_FILTER } from "./task.assignee";
 import { DEFAULT_FILTERS } from "./task.filters";
 import type { TaskFilterState } from "./task.filters";
 import TaskFilters from "./TaskFilters";
 
 const assignees = ["Alex Admin", "Morgan Manager"];
 
-const renderFilters = (filters: TaskFilterState = DEFAULT_FILTERS) => {
+const renderFilters = (
+  filters: TaskFilterState = DEFAULT_FILTERS,
+  hasUnassigned = false
+) => {
   const onChange = vi.fn();
   render(
-    <TaskFilters filters={filters} assignees={assignees} onChange={onChange} />
+    <TaskFilters
+      filters={filters}
+      assignees={assignees}
+      hasUnassigned={hasUnassigned}
+      onChange={onChange}
+    />
   );
   return { onChange };
 };
@@ -80,5 +89,39 @@ describe("TaskFilters", () => {
     expect(
       screen.getByRole("option", { name: "Former Employee" })
     ).toBeInTheDocument();
+  });
+
+  it("offers Unassigned when a task has no assignee", () => {
+    renderFilters(DEFAULT_FILTERS, true);
+    expect(
+      screen.getByRole("option", { name: "Unassigned" })
+    ).toBeInTheDocument();
+  });
+
+  it("does not offer Unassigned when every task has an assignee", () => {
+    renderFilters();
+    expect(
+      screen.queryByRole("option", { name: "Unassigned" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("reports the Unassigned choice", async () => {
+    const { onChange } = renderFilters(DEFAULT_FILTERS, true);
+    await userEvent.selectOptions(
+      screen.getByLabelText("Assigned To"),
+      "Unassigned"
+    );
+    expect(onChange).toHaveBeenCalledWith({
+      ...DEFAULT_FILTERS,
+      assignee: UNASSIGNED_FILTER,
+    });
+  });
+
+  it("keeps Unassigned selected without adding a raw option", () => {
+    renderFilters({ ...DEFAULT_FILTERS, assignee: UNASSIGNED_FILTER });
+    expect(screen.getByLabelText("Assigned To")).toHaveValue(UNASSIGNED_FILTER);
+    expect(
+      screen.queryByRole("option", { name: UNASSIGNED_FILTER })
+    ).not.toBeInTheDocument();
   });
 });

@@ -93,6 +93,21 @@ describe("TaskForm", () => {
     expect(screen.getByLabelText("Assigned To")).toHaveValue("user-morgan");
   });
 
+  it("asks for an assignee when editing a task that has none", async () => {
+    const { onSubmit } = renderForm({
+      title: "Orphan task",
+      description: "",
+      status: "To Do",
+      priority: "Medium",
+      dueDate: "2026-12-01",
+      assigneeId: "",
+    });
+    expect(screen.getByLabelText("Assigned To")).toHaveValue("");
+    await userEvent.click(screen.getByRole("button", { name: "Save Task" }));
+    expect(screen.getByText("Assigned to is required.")).toBeInTheDocument();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it("shows the error from the server when saving fails", async () => {
     const onSubmit = vi
       .fn()

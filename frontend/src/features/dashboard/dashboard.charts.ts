@@ -1,3 +1,4 @@
+import { UNASSIGNED_LABEL } from "~/features/tasks/task.assignee";
 import { TASK_PRIORITIES, TASK_STATUSES } from "~/features/tasks/task.types";
 import type {
   Task,
@@ -24,7 +25,6 @@ const PRIORITY_BAR_CLASSES: Record<TaskPriority, string> = {
 };
 
 const ASSIGNEE_BAR_CLASS = "bg-blue-500";
-const UNASSIGNED_LABEL = "Unassigned";
 
 export const getStatusData = (tasks: Task[]): ChartDatum[] =>
   TASK_STATUSES.map((status) => ({

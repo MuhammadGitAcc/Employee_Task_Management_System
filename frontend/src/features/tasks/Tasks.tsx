@@ -17,6 +17,7 @@ import TaskCard from "./TaskCard";
 import TaskFilters from "./TaskFilters";
 import TaskDetails from "./TaskDetails";
 import TaskForm from "./TaskForm";
+import { isUnassigned } from "./task.assignee";
 import { DEFAULT_FILTERS, filterTasks } from "./task.filters";
 import type { TaskFilterState } from "./task.filters";
 import type { TaskInput, TaskStatus } from "./task.types";
@@ -53,10 +54,13 @@ const Tasks: React.FC = () => {
     () => filterTasks(tasks, filters),
     [tasks, filters]
   );
-  const assignees = useMemo(
-    () => Array.from(new Set(tasks.map((task) => task.assignedTo))).sort(),
-    [tasks]
-  );
+  const assignees = useMemo(() => {
+    const names = tasks
+      .filter((task) => !isUnassigned(task))
+      .map((task) => task.assignedTo);
+    return Array.from(new Set(names)).sort();
+  }, [tasks]);
+  const hasUnassigned = useMemo(() => tasks.some(isUnassigned), [tasks]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const editingTask = tasks.find((task) => task.id === editingId);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -114,6 +118,7 @@ const Tasks: React.FC = () => {
           <TaskFilters
             filters={filters}
             assignees={assignees}
+            hasUnassigned={hasUnassigned}
             onChange={setFilters}
           />
           <div className="mb-4 flex gap-2" role="group" aria-label="Task view">
@@ -219,6 +224,7 @@ const Tasks: React.FC = () => {
         {detailsTask && (
           <TaskDetails
             key={detailsTask.id}
+            assignedTo={detailsTask.assignedTo}
             comments={details.comments}
             activity={details.activity}
             status={details.status}

@@ -5,22 +5,27 @@ import Input from "~/components/ui/Input";
 import Select from "~/components/ui/Select";
 import { TASK_PRIORITIES, TASK_STATUSES } from "./task.types";
 import type { TaskPriority, TaskStatus } from "./task.types";
+import { UNASSIGNED_FILTER, UNASSIGNED_LABEL } from "./task.assignee";
 import { DEFAULT_FILTERS } from "./task.filters";
 import type { SortOrder, TaskFilterState } from "./task.filters";
 
 interface TaskFiltersProps {
   filters: TaskFilterState;
   assignees: string[];
+  hasUnassigned?: boolean;
   onChange: (filters: TaskFilterState) => void;
 }
 
 const TaskFilters: React.FC<TaskFiltersProps> = ({
   filters,
   assignees,
+  hasUnassigned = false,
   onChange,
 }) => {
   const assigneeOptions =
-    filters.assignee === "All" || assignees.includes(filters.assignee)
+    filters.assignee === "All" ||
+    filters.assignee === UNASSIGNED_FILTER ||
+    assignees.includes(filters.assignee)
       ? assignees
       : [...assignees, filters.assignee];
 
@@ -72,6 +77,9 @@ const TaskFilters: React.FC<TaskFiltersProps> = ({
         onChange={(e) => onChange({ ...filters, assignee: e.target.value })}
       >
         <option value="All">All</option>
+        {(hasUnassigned || filters.assignee === UNASSIGNED_FILTER) && (
+          <option value={UNASSIGNED_FILTER}>{UNASSIGNED_LABEL}</option>
+        )}
         {assigneeOptions.map((name) => (
           <option key={name} value={name}>
             {name}

@@ -1,3 +1,4 @@
+import { UNASSIGNED_FILTER, isUnassigned } from "./task.assignee";
 import type { Task, TaskPriority, TaskStatus } from "./task.types";
 
 export type SortOrder = "asc" | "desc";
@@ -33,7 +34,12 @@ export const filterTasks = (
       if (filters.priority !== "All" && task.priority !== filters.priority) {
         return false;
       }
-      if (filters.assignee !== "All" && task.assignedTo !== filters.assignee) {
+      if (filters.assignee === UNASSIGNED_FILTER) {
+        if (!isUnassigned(task)) return false;
+      } else if (
+        filters.assignee !== "All" &&
+        task.assignedTo !== filters.assignee
+      ) {
         return false;
       }
       if (query) {
