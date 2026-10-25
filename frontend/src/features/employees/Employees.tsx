@@ -3,20 +3,23 @@ import PageContainer from "~/components/layout/PageContainer";
 import PageHeader from "~/components/layout/PageHeader";
 import Button from "~/components/ui/Button";
 import Card from "~/components/ui/Card";
+import ConfirmDialog from "~/components/ui/ConfirmDialog";
 import EmptyState from "~/components/ui/EmptyState";
 import ErrorState from "~/components/ui/ErrorState";
 import Modal from "~/components/ui/Modal";
 import Skeleton from "~/components/ui/Skeleton";
 import { useToast } from "~/components/ui/toast.context";
 import { useAuth } from "~/features/auth/useAuth";
+import { getErrorMessage } from "~/services/api";
 import EmployeeCard from "./EmployeeCard";
 import EmployeeForm from "./EmployeeForm";
 import type { EmployeeInput } from "./employee.types";
+import ResetPasswordForm from "./ResetPasswordForm";
 import { useEmployees } from "./useEmployees";
 
 const Employees: React.FC = () => {
   const { showToast } = useToast();
-  const { can } = useAuth();
+  const { can, user } = useAuth();
   const canManage = can("employee:manage");
   const {
     employees,
@@ -25,11 +28,21 @@ const Employees: React.FC = () => {
     reload,
     addEmployee,
     updateEmployee,
+    removeEmployee,
+    resetPassword,
   } = useEmployees();
   const [addFormKey, setAddFormKey] = useState(0);
   const [editingId, setEditingId] = useState<string | null>(null);
   const editingEmployee = employees.find(
     (employee) => employee.id === editingId
+  );
+  const [resettingId, setResettingId] = useState<string | null>(null);
+  const resettingEmployee = employees.find(
+    (employee) => employee.id === resettingId
+  );
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const removingEmployee = employees.find(
+    (employee) => employee.id === removingId
   );
   const sortedEmployees = [...employees].sort((a, b) =>
     a.name.localeCompare(b.name)
@@ -50,6 +63,25 @@ const Employees: React.FC = () => {
     await updateEmployee(editingEmployee.id, input);
     showToast(`Employee "${input.name}" updated.`);
     setEditingId(null);
+  };
+
+  const handleResetPassword = async (newPassword: string) => {
+    if (!resettingEmployee) return;
+    await resetPassword(resettingEmployee.id, newPassword);
+    showToast(`Password reset for "${resettingEmployee.name}".`);
+    setResettingId(null);
+  };
+
+  const handleRemove = async () => {
+    if (!removingEmployee) return;
+    try {
+      await removeEmployee(removingEmployee.id);
+    } catch (error) {
+      showToast(getErrorMessage(error), "error");
+      return;
+    }
+    showToast(`Employee "${removingEmployee.name}" removed.`);
+    setRemovingId(null);
   };
 
   return (
@@ -90,6 +122,12 @@ const Employees: React.FC = () => {
                   key={employee.id}
                   employee={employee}
                   onEdit={canManage ? setEditingId : undefined}
+                  onResetPassword={canManage ? setResettingId : undefined}
+                  onRemove={
+                    canManage && employee.id !== user?.id
+                      ? setRemovingId
+                      : undefined
+                  }
                 />
               ))}
             </div>
@@ -122,6 +160,27 @@ const Employees: React.FC = () => {
           />
         )}
       </Modal>
+      <Modal
+        isOpen={resettingEmployee !== undefined}
+        onClose={() => setResettingId(null)}
+        title="Reset Password"
+      >
+        {resettingEmployee && (
+          <ResetPasswordForm
+            key={resettingEmployee.id}
+            employeeName={resettingEmployee.name}
+            onSubmit={handleResetPassword}
+          />
+        )}
+      </Modal>
+      <ConfirmDialog
+        isOpen={removingEmployee !== undefined}
+        title="Remove Employee"
+        message={`Remove "${removingEmployee?.name ?? ""}"? They will no longer be able to sign in, and their tasks will become unassigned.`}
+        confirmLabel="Remove"
+        onConfirm={handleRemove}
+        onCancel={() => setRemovingId(null)}
+      />
     </PageContainer>
   );
 };

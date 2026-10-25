@@ -3,6 +3,8 @@ import { ApiError } from "~/services/api";
 import {
   createEmployee,
   listEmployees,
+  removeEmployee as deleteEmployee,
+  resetPassword as saveEmployeePassword,
   updateEmployee as saveEmployee,
 } from "~/services/employees";
 import type {
@@ -63,6 +65,16 @@ export const useEmployees = () => {
     return updated;
   };
 
+  const removeEmployee = async (id: string): Promise<void> => {
+    await deleteEmployee(id);
+    setEmployees((previous) =>
+      previous.filter((employee) => employee.id !== id)
+    );
+  };
+
+  const resetPassword = (id: string, newPassword: string): Promise<void> =>
+    saveEmployeePassword(id, newPassword);
+
   return {
     employees,
     status,
@@ -70,5 +82,7 @@ export const useEmployees = () => {
     reload,
     addEmployee,
     updateEmployee,
+    removeEmployee,
+    resetPassword,
   };
 };

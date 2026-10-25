@@ -24,3 +24,9 @@ export const updateEmployee = async (
   const { user } = await api.put<{ user: Employee }>(`/users/${id}`, input);
   return user;
 };
+
+export const removeEmployee = (id: string): Promise<void> =>
+  api.delete(`/users/${id}`);
+
+export const resetPassword = (id: string, newPassword: string): Promise<void> =>
+  api.put<void>(`/users/${id}/password`, { newPassword });
