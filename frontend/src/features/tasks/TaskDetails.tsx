@@ -5,9 +5,11 @@ import Skeleton from "~/components/ui/Skeleton";
 import Textarea from "~/components/ui/Textarea";
 import { getErrorMessage } from "~/services/api";
 import { formatDateTime } from "~/utils/helpers";
+import { getAssigneeLabel } from "./task.assignee";
 import type { TaskActivity, TaskComment } from "./task.collab.types";
 
 interface TaskDetailsProps {
+  assignedTo: string;
   comments: TaskComment[];
   activity: TaskActivity[];
   status: "loading" | "ready" | "error";
@@ -19,6 +21,7 @@ interface TaskDetailsProps {
 const COMMENT_MAX_LENGTH = 500;
 
 const TaskDetails: React.FC<TaskDetailsProps> = ({
+  assignedTo,
   comments,
   activity,
   status,
@@ -76,6 +79,9 @@ const TaskDetails: React.FC<TaskDetailsProps> = ({
 
   return (
     <div className="space-y-6">
+      <p className="text-sm text-gray-500 dark:text-gray-400">
+        Assigned to: {getAssigneeLabel({ assignedTo })}
+      </p>
       <section>
         <h3 className="text-sm font-semibold text-gray-700 mb-2 dark:text-gray-200">
           Comments ({comments.length})

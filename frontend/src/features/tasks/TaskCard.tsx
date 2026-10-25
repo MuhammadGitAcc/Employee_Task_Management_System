@@ -2,6 +2,7 @@ import React, { memo } from "react";
 import Badge, { type BadgeTone } from "~/components/ui/Badge";
 import Button from "~/components/ui/Button";
 import Card from "~/components/ui/Card";
+import { getAssigneeLabel } from "./task.assignee";
 import { getDueState } from "./task.due";
 import type { DueState } from "./task.due";
 import type { Task, TaskPriority, TaskStatus } from "./task.types";
@@ -62,7 +63,7 @@ const TaskCard: React.FC<TaskCardProps> = ({
         {dueState === "due-soon" && <Badge tone="yellow">Due soon</Badge>}
       </div>
       <p className="text-sm text-gray-500 mt-2 dark:text-gray-400">
-        Assigned to: {assignedTo}
+        Assigned to: {getAssigneeLabel({ assignedTo })}
       </p>
       {(onDetails || onEdit || onDelete) && (
         <div className="mt-4 flex flex-wrap gap-3">

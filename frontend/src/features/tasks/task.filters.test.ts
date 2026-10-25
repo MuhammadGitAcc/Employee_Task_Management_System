@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { UNASSIGNED_FILTER } from "./task.assignee";
 import { DEFAULT_FILTERS, filterTasks } from "./task.filters";
 import type { Task } from "./task.types";
 
@@ -77,6 +78,48 @@ describe("filterTasks", () => {
       assignee: "Alex Admin",
     });
     expect(ids(result)).toEqual(["a", "c"]);
+  });
+
+  it("filters the tasks without an assignee", () => {
+    const withUnassigned = [
+      ...tasks,
+      makeTask({ id: "d", assigneeId: null, assignedTo: "" }),
+    ];
+    const result = filterTasks(withUnassigned, {
+      ...DEFAULT_FILTERS,
+      assignee: UNASSIGNED_FILTER,
+    });
+    expect(ids(result)).toEqual(["d"]);
+  });
+
+  it("leaves the tasks without an assignee out when an employee is chosen", () => {
+    const withUnassigned = [
+      ...tasks,
+      makeTask({ id: "d", assigneeId: null, assignedTo: "" }),
+    ];
+    const result = filterTasks(withUnassigned, {
+      ...DEFAULT_FILTERS,
+      assignee: "Alex Admin",
+    });
+    expect(ids(result)).toEqual(["a", "c"]);
+  });
+
+  it("keeps the tasks without an assignee in the full list", () => {
+    const withUnassigned = [
+      ...tasks,
+      makeTask({
+        id: "d",
+        dueDate: "2026-11-02",
+        assigneeId: null,
+        assignedTo: "",
+      }),
+    ];
+    expect(ids(filterTasks(withUnassigned, DEFAULT_FILTERS))).toEqual([
+      "d",
+      "b",
+      "a",
+      "c",
+    ]);
   });
 
   it("searches the title without caring about letter case", () => {
