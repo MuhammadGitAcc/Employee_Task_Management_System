@@ -36,19 +36,23 @@ A request goes through `routes -> controllers -> services`. Each layer has one j
 
 ### Endpoints
 
-| Path                              | Methods   | Who                    |
-| --------------------------------- | --------- | ---------------------- |
-| `/api/health`, `/api/health/db`   | GET       | anyone                 |
-| `/api/auth/login`, `/api/auth/me` | POST, GET | anyone, signed-in user |
-| `/api/users`                      | GET       | any signed-in user     |
-| `/api/users`, `/api/users/:id`    | POST, PUT | Admin                  |
-| `/api/tasks`                      | GET       | any signed-in user     |
-| `/api/tasks`, `/api/tasks/:id`    | POST, PUT | Admin, Manager         |
-| `/api/tasks/:id/status`           | PATCH     | any signed-in user     |
-| `/api/tasks/:id`                  | DELETE    | Admin                  |
-| `/api/tasks/:id/comments`         | GET, POST | any signed-in user     |
-| `/api/tasks/:id/activity`         | GET       | any signed-in user     |
-| `/api/chat/:channelId/messages`   | GET, POST | any signed-in user     |
+| Path                                    | Methods   | Who                           |
+| --------------------------------------- | --------- | ----------------------------- |
+| `/api/health`, `/api/health/db`         | GET       | anyone                        |
+| `/api/auth/register`, `/api/auth/login` | POST      | anyone (rate limited)         |
+| `/api/auth/me`                          | GET       | signed-in user                |
+| `/api/auth/password`                    | PUT       | signed-in user (rate limited) |
+| `/api/users`                            | GET       | any signed-in user            |
+| `/api/users`, `/api/users/:id`          | POST, PUT | Admin                         |
+| `/api/users/:id`                        | DELETE    | Admin (deactivates)           |
+| `/api/users/:id/password`               | PUT       | Admin                         |
+| `/api/tasks`                            | GET       | any signed-in user            |
+| `/api/tasks`, `/api/tasks/:id`          | POST, PUT | Admin, Manager                |
+| `/api/tasks/:id/status`                 | PATCH     | any signed-in user            |
+| `/api/tasks/:id`                        | DELETE    | Admin                         |
+| `/api/tasks/:id/comments`               | GET, POST | any signed-in user            |
+| `/api/tasks/:id/activity`               | GET       | any signed-in user            |
+| `/api/chat/:channelId/messages`         | GET, POST | any signed-in user            |
 
 ### Authentication
 
@@ -56,6 +60,9 @@ A request goes through `routes -> controllers -> services`. Each layer has one j
 - The frontend sends the token as `Authorization: Bearer <token>`.
 - `authenticate` reads the user from the database on every request, so a deleted user or a changed role takes effect at once.
 - `requireRole(...)` protects routes by role. The frontend has the same rules in `features/auth/permissions.ts`, but only to hide buttons; the server is the real guard.
+- `POST /api/auth/register` creates an Employee (a role sent by the client is ignored) and signs the user in like login. `PUT /api/auth/password` changes your own password: the current one is required, and a wrong one answers 400, never 401, because the frontend signs the user out on any 401.
+- Login, register and change password share one rate limiter: 20 failed attempts per 15 minutes per address (successful requests are not counted). The API trusts one proxy (`trust proxy` 1) because it sits behind Render.
+- `DELETE /api/users/:id` (Admin) deactivates an employee: `active` becomes false and their tasks become unassigned. From then on their login is refused, their token is refused (401) and their open socket is closed. Their email stays reserved. `PUT /api/users/:id/password` (Admin) resets a password.
 
 ### Real time
 
@@ -64,6 +71,7 @@ A request goes through `routes -> controllers -> services`. Each layer has one j
 - Events:
   - `message`: a chat message was saved (carries the message).
   - `tasks-changed`: a task was created, edited, moved or deleted (carries nothing; clients load the list again).
+  - `user-removed`: an employee was removed. It stays inside the server: the socket server closes that user's sockets with 4401 and never sends this event to clients.
 - Close codes: 4401 (bad token, unknown user, or no auth within 5 seconds) and 4403 (origin not in `CORS_ORIGIN`). A ping every 30 seconds removes dead connections.
 - The hub keeps services free of any `ws` code, so they stay easy to test.
 
@@ -76,7 +84,7 @@ User ──< TaskActivity ──> Task
 User ──< ChatMessage
 ```
 
-- `User` is also the employee directory (name, email, role, password hash).
+- `User` is also the employee directory (name, email, role, password hash, `active` flag). Removing an employee sets `active` to false instead of deleting the row, so their comments, activity entries and chat messages keep their name; their tasks become unassigned (`assigneeId` is null).
 - `Task`: title, description, status, priority, due date (a date, no time), assignee.
 - Comments and activity entries are deleted together with their task.
 - The server writes the activity entries ("changed status from ... to ...").
@@ -141,3 +149,8 @@ Pages show skeletons while loading, an `EmptyState` when there is nothing to sho
 - Any signed-in user can change a task's status (like the Kanban board). A later tightening is to allow only the assignee.
 - The assignee is matched by name in the profile, dashboard and notification logic. A later tightening is to match by `assigneeId`.
 - The task list and the chat each open their own socket on the Chat page. A shared socket would be a later refactor.
+- The login token is kept in the browser's localStorage, so a script injected into the page could read it. HttpOnly cookies would avoid that, but they need a different CORS and CSRF setup.
+- Old tokens stay valid until they expire (7 days by default) after a password change or reset. A fix needs a token version or a "password changed at" timestamp checked in `authenticate`, which is a database migration.
+- Local development and the live site share one Neon database (a separate dev branch was skipped on purpose), so `npm run db:migrate` and local runs touch live data. The seed is guarded: it refuses on production and without `ALLOW_SEED=true`.
+- Email verification, "forgot password", account lockout and refresh tokens are not built; they need an email service.
+- In development mode a 500 response shows the raw error text, which helps debugging. Production hides it, and a test proves it.

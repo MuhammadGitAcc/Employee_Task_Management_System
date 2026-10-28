@@ -1,6 +1,6 @@
-import type { BroadcastEvent } from "../types/chat.types.js";
+import type { HubEvent } from "../types/chat.types.js";
 
-type Listener = (event: BroadcastEvent) => void;
+type Listener = (event: HubEvent) => void;
 
 const listeners = new Set<Listener>();
 
@@ -12,6 +12,6 @@ export const subscribe = (listener: Listener): (() => void) => {
   };
 };
 
-export const publish = (event: BroadcastEvent): void => {
+export const publish = (event: HubEvent): void => {
   listeners.forEach((listener) => listener(event));
 };

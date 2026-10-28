@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
 import WebSocket from "ws";
-import { adminUser, mockUsers } from "../test/helpers.js";
+import { adminUser, employeeUser, mockUsers } from "../test/helpers.js";
 import { prismaMock } from "../test/prismaMock.js";
 import type { ApiChatMessage } from "../types/chat.types.js";
 import { signToken } from "../utils/jwt.js";
@@ -150,6 +150,27 @@ describe("socket server", () => {
     );
 
     await expect(code).resolves.toBe(CLOSE_UNAUTHORIZED);
+  });
+
+  it("closes the sockets of a removed employee and keeps the others", async () => {
+    mockUsers(adminUser, employeeUser);
+    const url = await start();
+    const removed = connect(url);
+    await opened(removed);
+    await authenticate(removed, await signToken(employeeUser));
+    const other = connect(url);
+    await opened(other);
+    await authenticate(other);
+
+    const code = closedWith(removed);
+    publish({ type: "user-removed", userId: employeeUser.id });
+
+    await expect(code).resolves.toBe(CLOSE_UNAUTHORIZED);
+
+    const pushed = nextMessage(other);
+    publish({ type: "tasks-changed" });
+
+    await expect(pushed).resolves.toEqual({ type: "tasks-changed" });
   });
 
   it("sends nothing to a socket that has not authenticated", async () => {

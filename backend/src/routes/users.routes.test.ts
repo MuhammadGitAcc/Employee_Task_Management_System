@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { subscribe } from "../realtime/chat.hub.js";
 import {
   adminUser,
   api,
@@ -153,6 +154,41 @@ describe("users routes", () => {
       where: { id: "user-other", active: true },
       data: { active: false },
     });
+  });
+
+  it("DELETE /api/users/:id tells the sockets that the employee was removed", async () => {
+    mockUsers(adminUser);
+    prismaMock.task.updateMany.mockResolvedValue({ count: 0 });
+    prismaMock.user.update.mockResolvedValue({});
+    const listener = vi.fn();
+    const unsubscribe = subscribe(listener);
+
+    const res = await api()
+      .delete("/api/users/user-other")
+      .set("Authorization", await bearer(adminUser));
+    unsubscribe();
+
+    expect(res.status).toBe(204);
+    expect(listener).toHaveBeenCalledWith({
+      type: "user-removed",
+      userId: "user-other",
+    });
+  });
+
+  it("DELETE /api/users/:id publishes nothing when the employee is not found", async () => {
+    mockUsers(adminUser);
+    prismaMock.task.updateMany.mockResolvedValue({ count: 0 });
+    prismaMock.user.update.mockRejectedValue({ code: "P2025" });
+    const listener = vi.fn();
+    const unsubscribe = subscribe(listener);
+
+    const res = await api()
+      .delete("/api/users/missing")
+      .set("Authorization", await bearer(adminUser));
+    unsubscribe();
+
+    expect(res.status).toBe(404);
+    expect(listener).not.toHaveBeenCalled();
   });
 
   it("DELETE /api/users/:id refuses to remove your own account", async () => {

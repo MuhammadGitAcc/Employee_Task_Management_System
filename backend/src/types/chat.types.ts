@@ -18,4 +18,11 @@ export interface TasksChangedEvent {
 
 export type BroadcastEvent = ChatEvent | TasksChangedEvent;
 
+export interface UserRemovedEvent {
+  type: "user-removed";
+  userId: string;
+}
+
+export type HubEvent = BroadcastEvent | UserRemovedEvent;
+
 export type SocketEvent = { type: "ready" } | BroadcastEvent;
