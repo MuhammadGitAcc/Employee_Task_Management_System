@@ -162,6 +162,12 @@ Add screenshots to `docs/screenshots/` and link them here.
 
 The app runs on a free stack: Neon (database), Render (API) and Cloudflare Pages (frontend). Deploy in this order, because each step needs an address from the one before.
 
+Live addresses of this project:
+
+- Frontend: https://employee-task-management-system.pages.dev
+- API: https://employee-task-api-rqoo.onrender.com (health check: `/api/health`, database check: `/api/health/db`)
+- Code: https://github.com/MuhammadGitAcc/Employee_Task_Management_System
+
 ### 1. Database (Neon)
 
 Create the project in the `us-east-2` (Ohio) region and keep both connection strings: pooled (`DATABASE_URL`) and direct (`DIRECT_URL`). From `backend/`, with both set in `backend/.env`, apply the migrations:
@@ -170,7 +176,7 @@ Create the project in the `us-east-2` (Ohio) region and keep both connection str
 npm run db:deploy
 ```
 
-Do not run `npm run db:seed` on this database: it adds demo accounts with well-known passwords. It refuses to run unless `ALLOW_SEED=true` is set.
+A fresh database has no users. Do not run `npm run db:seed` on it: the seed adds demo accounts with well-known passwords, and it refuses to run unless `ALLOW_SEED=true` is set. Instead, sign up on the live site (every new account is an Employee), then open Prisma Studio (`npm run db:studio` in `backend/`), open the `User` table and change the `role` of your own row to `Admin`. Reload the page.
 
 ### 2. API (Render)
 
@@ -211,5 +217,12 @@ Set `CORS_ORIGIN` on Render to the Pages address (for example `https://your-proj
 - login works, and a refresh on `/dashboard` still shows the dashboard
 - chat messages arrive live for a second user
 - a task changed by one user appears for a second user without a refresh
+- after the API has slept, the first request shows the "waking up the server" notice
 
 On the free plan Render puts the API to sleep after 15 minutes without traffic, and the first request afterwards takes about a minute. The app shows a "waking up the server" notice during that time.
+
+### 5. Update the live site
+
+Every change travels on its own branch and a Pull Request. The `main` branch is protected: the checks `Frontend` and `Backend` must pass and only squash merge is allowed. After a merge, Cloudflare Pages deploys the frontend, and Render deploys the API when files inside `backend/` changed.
+
+A change with a new database migration needs one extra step: run `npm run db:deploy` in `backend/` against the production database before the merge, because Render does not run migrations by itself. Keep migrations additive and never edit an old one. To roll back, use Cloudflare Pages > Deployments or Render > Deploys and pick the previous deployment; database changes are not rolled back.
