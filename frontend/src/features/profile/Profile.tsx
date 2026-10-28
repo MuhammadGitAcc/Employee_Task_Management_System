@@ -1,7 +1,9 @@
 import React from "react";
 import PageContainer from "~/components/layout/PageContainer";
 import PageHeader from "~/components/layout/PageHeader";
+import Button from "~/components/ui/Button";
 import Card from "~/components/ui/Card";
+import Skeleton from "~/components/ui/Skeleton";
 import { useAuth } from "~/features/auth/useAuth";
 import { isAssignedTo } from "~/features/tasks/task.assignee";
 import { useTasks } from "~/features/tasks/useTasks";
@@ -9,7 +11,7 @@ import ChangePasswordForm from "./ChangePasswordForm";
 
 const Profile: React.FC = () => {
   const { user } = useAuth();
-  const { tasks } = useTasks();
+  const { tasks, status, errorMessage, reload } = useTasks();
 
   if (!user) return null;
 
@@ -35,14 +37,39 @@ const Profile: React.FC = () => {
             <p className="text-md">
               Email: <span className="font-medium">{user.email}</span>
             </p>
-            <p className="text-md">
-              Tasks Assigned:{" "}
-              <span className="font-medium">{myTasks.length}</span>
-            </p>
-            <p className="text-md">
-              Tasks Completed:{" "}
-              <span className="font-medium">{tasksCompleted}</span>
-            </p>
+            {status === "loading" ? (
+              <div
+                role="status"
+                aria-label="Loading task counts"
+                className="mx-auto mt-2 max-w-xs space-y-2"
+              >
+                <Skeleton className="h-5" />
+                <Skeleton className="h-5" />
+              </div>
+            ) : status === "error" ? (
+              <div className="mt-2 space-y-2">
+                <p
+                  role="alert"
+                  className="text-sm text-red-600 dark:text-red-400"
+                >
+                  {errorMessage}
+                </p>
+                <Button variant="secondary" onClick={reload}>
+                  Try again
+                </Button>
+              </div>
+            ) : (
+              <>
+                <p className="text-md">
+                  Tasks Assigned:{" "}
+                  <span className="font-medium">{myTasks.length}</span>
+                </p>
+                <p className="text-md">
+                  Tasks Completed:{" "}
+                  <span className="font-medium">{tasksCompleted}</span>
+                </p>
+              </>
+            )}
           </div>
         </div>
       </Card>
