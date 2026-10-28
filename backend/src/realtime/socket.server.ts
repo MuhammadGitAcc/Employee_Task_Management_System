@@ -43,11 +43,11 @@ const readAuthToken = (data: WebSocket.RawData): string | null => {
   }
 };
 
-const isKnownUser = async (token: string): Promise<boolean> => {
+const findActiveUserId = async (token: string): Promise<string | null> => {
   const userId = await verifyToken(token);
 
   if (!userId) {
-    return false;
+    return null;
   }
 
   const user = await prisma.user.findUnique({
@@ -55,7 +55,7 @@ const isKnownUser = async (token: string): Promise<boolean> => {
     select: { active: true },
   });
 
-  return Boolean(user?.active);
+  return user?.active ? userId : null;
 };
 
 export const attachSocketServer = (server: Server) => {
@@ -64,7 +64,7 @@ export const attachSocketServer = (server: Server) => {
     path: SOCKET_PATH,
     maxPayload: MAX_PAYLOAD_BYTES,
   });
-  const authenticated = new Set<WebSocket>();
+  const authenticated = new Map<WebSocket, string>();
   const alive = new WeakSet<WebSocket>();
 
   wss.on("connection", (socket, request) => {
@@ -90,16 +90,16 @@ export const attachSocketServer = (server: Server) => {
 
     const authenticate = async (data: WebSocket.RawData): Promise<void> => {
       const token = readAuthToken(data);
-      let valid = false;
+      let userId: string | null = null;
 
       try {
-        valid = token !== null && (await isKnownUser(token));
+        userId = token === null ? null : await findActiveUserId(token);
       } catch {
         socket.close(CLOSE_SERVER_ERROR, "Server error");
         return;
       }
 
-      if (!valid) {
+      if (!userId) {
         socket.close(CLOSE_UNAUTHORIZED, "Unauthorized");
         return;
       }
@@ -108,7 +108,7 @@ export const attachSocketServer = (server: Server) => {
         return;
       }
 
-      authenticated.add(socket);
+      authenticated.set(socket, userId);
       send(socket, { type: "ready" });
     };
 
@@ -126,7 +126,16 @@ export const attachSocketServer = (server: Server) => {
   });
 
   const unsubscribe = subscribe((event) => {
-    authenticated.forEach((socket) => send(socket, event));
+    if (event.type === "user-removed") {
+      authenticated.forEach((userId, socket) => {
+        if (userId === event.userId) {
+          socket.close(CLOSE_UNAUTHORIZED, "Account removed");
+        }
+      });
+      return;
+    }
+
+    authenticated.forEach((_userId, socket) => send(socket, event));
   });
 
   const heartbeat = setInterval(() => {

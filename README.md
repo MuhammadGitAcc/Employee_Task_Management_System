@@ -6,23 +6,25 @@ A full-stack web app for managing team work: tasks, employees, comments, notific
 
 - **Tasks**: create, edit, delete, search, filter (status, priority, assignee), sort by due date, overdue and due-soon highlighting, Kanban board with drag and drop
 - **Task details**: comments and a full activity history, written by the server
-- **Employees**: directory with roles; Admins add and edit employees
+- **Employees**: directory with roles; Admins add, edit and remove employees, change roles and reset passwords
 - **Dashboard**: stat cards, charts (by status, priority, employee), "my tasks" and upcoming deadlines
 - **Notifications**: a bell for tasks assigned to you and tasks due soon
 - **Chat**: three channels (General, Tasks, Announcements); messages are saved in the database and arrive live over a WebSocket, with automatic reconnect
-- **Auth and roles**: JWT login; Admin, Manager and Employee permissions
+- **Accounts and roles**: open sign-up (every new account is an Employee), JWT login, change password; Admin, Manager and Employee permissions
 - **UI**: dark mode, responsive layout with a mobile menu, loading skeletons, empty and error states, keyboard and screen-reader support
 
 ## Roles
 
-| Action                 | Admin | Manager | Employee |
-| ---------------------- | :---: | :-----: | :------: |
-| View tasks and chat    |  yes  |   yes   |   yes    |
-| Move a task (status)   |  yes  |   yes   |   yes    |
-| Comment on a task      |  yes  |   yes   |   yes    |
-| Create and edit tasks  |  yes  |   yes   |    no    |
-| Delete tasks           |  yes  |   no    |    no    |
-| Add and edit employees |  yes  |   no    |    no    |
+| Action                            | Admin | Manager | Employee |
+| --------------------------------- | :---: | :-----: | :------: |
+| View tasks and chat               |  yes  |   yes   |   yes    |
+| Move a task (status)              |  yes  |   yes   |   yes    |
+| Comment on a task                 |  yes  |   yes   |   yes    |
+| Change your own password          |  yes  |   yes   |   yes    |
+| Create and edit tasks             |  yes  |   yes   |    no    |
+| Delete tasks                      |  yes  |   no    |    no    |
+| Add and edit employees            |  yes  |   no    |    no    |
+| Remove employees, reset passwords |  yes  |   no    |    no    |
 
 ## Tech stack
 
@@ -68,7 +70,7 @@ Then create the tables, add the demo data and start the API:
 
 ```bash
 npm run db:deploy
-npm run db:seed
+ALLOW_SEED=true npm run db:seed
 npm run dev
 ```
 
@@ -89,7 +91,7 @@ Open http://localhost:5173.
 
 ### Demo accounts
 
-Created by `npm run db:seed` (run it only on a development database):
+Created by `ALLOW_SEED=true npm run db:seed`. The seed refuses to run without `ALLOW_SEED=true` and refuses to run when `NODE_ENV` is `production`. These passwords are public, so run it only on a development database, never on one that holds real data. The live site has no demo accounts: sign up there, and promote the first Admin by hand in Prisma Studio.
 
 | Role     | Email                | Password    |
 | -------- | -------------------- | ----------- |
@@ -134,7 +136,7 @@ Run these inside `frontend/` or `backend/`.
 | npm start          | backend  | Run the built API                          |
 | npm run db:migrate | backend  | Create and apply a migration (development) |
 | npm run db:deploy  | backend  | Apply existing migrations                  |
-| npm run db:seed    | backend  | Add the demo users and tasks               |
+| npm run db:seed    | backend  | Add demo data (needs ALLOW_SEED=true)      |
 | npm run db:studio  | backend  | Open Prisma Studio                         |
 
 Before every commit, `npm run build`, `npm run lint` and `npm test` should pass in both folders.
@@ -142,6 +144,15 @@ Before every commit, `npm run build`, `npm run lint` and `npm test` should pass 
 ## Chat and real time
 
 Messages are sent through the REST API and pushed to everyone on the same server through a WebSocket at `/ws`. The first socket message must carry the login token, so the token never appears in the URL. If the connection drops (for example when a free hosting plan puts the server to sleep), the client reconnects by itself with growing delays and reloads the messages it missed.
+
+## Security notes
+
+- Sign-up is open and every new account is an Employee. Only an Admin changes roles.
+- Login, sign-up and change password are rate limited (20 failed attempts per 15 minutes per address).
+- Removing an employee deactivates the account: the person cannot sign in, their token is refused and their open chat socket is closed. Their comments and chat messages keep their name, and their tasks become unassigned.
+- The login token is kept in the browser's localStorage, so a script injected into the page could read it.
+- After a password change or reset, old tokens stay valid until they expire (7 days by default).
+- The seed refuses to run on production and without `ALLOW_SEED=true`.
 
 ## Screenshots
 
@@ -159,7 +170,7 @@ Create the project in the `us-east-2` (Ohio) region and keep both connection str
 npm run db:deploy
 ```
 
-`npm run db:seed` adds the demo accounts. They have well-known passwords, so use them only for a demo and never on a database that holds real data.
+Do not run `npm run db:seed` on this database: it adds demo accounts with well-known passwords. It refuses to run unless `ALLOW_SEED=true` is set.
 
 ### 2. API (Render)
 

@@ -48,6 +48,12 @@ async function main() {
     );
   }
 
+  if (process.env.ALLOW_SEED !== "true") {
+    throw new Error(
+      "Refusing to seed: set ALLOW_SEED=true to confirm this is a development database.",
+    );
+  }
+
   const idByEmail = new Map<string, string>();
 
   for (const { password, ...data } of DEMO_USERS) {

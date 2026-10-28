@@ -36,7 +36,9 @@ export const deactivateUser = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
-  await usersService.deactivateUser(getIdParam(req), getRequestUser(req).id);
+  const id = getIdParam(req);
+  await usersService.deactivateUser(id, getRequestUser(req).id);
+  publish({ type: "user-removed", userId: id });
   publish({ type: "tasks-changed" });
   res.status(204).end();
 };
